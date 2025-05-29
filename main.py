@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from neo4j import GraphDatabase
 from typing import List, Optional
 from collections import deque
+from fastapi.middleware.cors import CORSMiddleware 
 
 # Neo4j connection details (update with your credentials)
 NEO4J_URI = "neo4j+s://d10766eb.databases.neo4j.io"
@@ -13,6 +14,17 @@ driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 app = FastAPI(title="Puzzle Solver API", version="1.0.0")
 
+origins = [
+    "*",  # Permite cualquier origen. Cambia a lista de orígenes permitidos para producción
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # o ['http://localhost:3000', 'https://midominio.com']
+    allow_credentials=True,
+    allow_methods=["*"],  # Métodos permitidos, e.g., ["GET", "POST"]
+    allow_headers=["*"],  # Headers permitidos
+)
 
 class Puzzle(BaseModel):
     name: str
@@ -50,7 +62,7 @@ def get_neo4j_session():
 
 def run_query(session, query, parameters=None):
     result = session.run(query, parameters or {})
-    return [record for record in result]
+    return [record.data() for record in result]
 
 
 def get_edges(session, piece_id, puzzle_name):
@@ -288,5 +300,5 @@ def cleanup_database(session=Depends(get_neo4j_session)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=9080)
+    uvicorn.run(app, host="127.0.0.1", port=9080)
 
